@@ -16,11 +16,12 @@ import (
 )
 
 type CatalogServerConfig struct {
-	ExternalAddr string
-	CatalogAddr  string
-	CertFile     string
-	KeyFile      string
-	LocalStorage storage.Instance
+	ExternalAddr   string
+	CatalogAddr    string
+	CertFile       string
+	KeyFile        string
+	LocalStorage   storage.Instance
+	TlsFileWatcher *certwatcher.CertWatcher
 }
 
 func AddCatalogServerToManager(mgr ctrl.Manager, cfg CatalogServerConfig) error {
@@ -30,15 +31,11 @@ func AddCatalogServerToManager(mgr ctrl.Manager, cfg CatalogServerConfig) error 
 	}
 
 	if cfg.CertFile != "" && cfg.KeyFile != "" {
-		tlsFileWatcher, err := certwatcher.New(cfg.CertFile, cfg.KeyFile)
-		if err != nil {
-			return fmt.Errorf("error creating TLS certificate watcher: %w", err)
-		}
 		config := &tls.Config{
-			GetCertificate: tlsFileWatcher.GetCertificate,
+			GetCertificate: cfg.TlsFileWatcher.GetCertificate,
 			MinVersion:     tls.VersionTLS12,
 		}
-		err = mgr.Add(tlsFileWatcher)
+		err = mgr.Add(cfg.TlsFileWatcher)
 		if err != nil {
 			return fmt.Errorf("error adding TLS certificate watcher to manager: %w", err)
 		}
